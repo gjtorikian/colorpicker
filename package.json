@@ -1,0 +1,19 @@
+{
+  "name": "colorpicker",
+  "main": "./lib/colorpicker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A CSS colorpicker for Atom",
+  "repository": "https://github.com/atom/colorpicker",
+  "licenses": [
+    {
+      "type": "Apache",
+      "url": "http://github.com/atom/colorpicker/raw/master/LICENSE.md"
+    }
+  ],
+  "engines": {
+    "atom": ">0.39.0"
+  },
+  "dependencies": {
+  }
+}
