@@ -8,17 +8,16 @@ BIN_DIR = path.join(__dirname, "..", "bin")
 
 module.exports =
   activate: ->
-    atom.workspaceView.eachEditorView (editor) =>
-      return unless editor.attached and editor.getPane()?
-      editor.on 'click', (e) =>
-        editorView = e.currentTargetView()
-        return unless editorView.getGrammar().scopeName is 'source.css'
-        return if editorView.getSelectedBufferRange().isEmpty()
-        cursor = editorView.getCursor()
-        line = cursor.getCurrentBufferLine()
-        pos = cursor.getBufferPosition()
-        colors = @detectColors(pos, line)
-        @toggleColorPicker(pos, line, colors[1]) if colors[1]
+    atom.workspaceView.command 'colorpicker:toggle', '.editor:not(.mini)', =>
+      activePane = atom.workspaceView.getActivePane()
+      @editor = activePane.activeItem
+      return unless @editor.getGrammar().scopeName is 'source.css'
+      return unless @editor.getSelectedBufferRange().isEmpty()
+      cursor = @editor.getCursor()
+      line = cursor.getCurrentBufferLine()
+      pos = cursor.getBufferPosition()
+      colors = @detectColors(pos, line)
+      @toggleColorPicker(pos, line, colors[1]) if colors[1]
 
   detectColors: (pos, line) ->
     colors = line.match(ColorRegex.isColor)
@@ -36,11 +35,11 @@ module.exports =
   toggleColorPicker: (pos, line, color) ->
     platform = os.platform()
     colorpickerPath = path.join(BIN_DIR, "#{platform}-colorpicker")
-    fs.exists colorpickerPath, (exists) ->
+    fs.exists colorpickerPath, (exists) =>
       unless exists
         console.error "No colorpicker available for #{platform}"
         return
-      fs.stat colorpickerPath, (err, stats) ->
+      fs.stat colorpickerPath, (err, stats) =>
         throw err if err
         executable = !!(1 & parseInt((stats.mode & parseInt("777", 8)).toString(8)[0]))
         fs.chmodSync(colorpicker, '755') unless executable
@@ -48,8 +47,17 @@ module.exports =
         colorpicker = spawn colorpickerPath, args
 
         colorpicker.stdout.on 'data', (data) =>
-          @color = data
+          @color = String(data)
 
         colorpicker.on 'close', (code) =>
-          if code == 0
-            @color
+          @replaceSelectedTextWithMatch(@color) if code == 0
+
+  replaceSelectedTextWithMatch: (match) ->
+    @editor.selectWord()
+    selection = @editor.getSelection()
+    startPosition = selection.getBufferRange().start
+    buffer = @editor.getBuffer()
+
+    selection.deleteSelectedText()
+    cursorPosition = @editor.getCursorBufferPosition()
+    @editor.insertText(match)

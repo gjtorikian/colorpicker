@@ -11,6 +11,9 @@
       "url": "http://github.com/atom/colorpicker/raw/master/LICENSE.md"
     }
   ],
+  "activationEvents": {
+    "colorpicker:toggle": ".editor:not(.mini)"
+  },
   "engines": {
     "atom": ">0.39.0"
   },
