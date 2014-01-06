@@ -1,1 +1,1 @@
-Hey there! #fff
+  background-color: #ffffff;
