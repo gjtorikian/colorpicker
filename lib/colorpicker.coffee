@@ -3,6 +3,7 @@ fs = require 'fs'
 os = require 'os'
 path = require 'path'
 spawn = require('child_process').spawn
+tinycolor = require "tinycolor2"
 ColorRegex = require './color_regex'
 BIN_DIR = path.join(__dirname, "..", "bin")
 
@@ -17,9 +18,10 @@ module.exports =
       line = cursor.getCurrentBufferLine()
       pos = cursor.getBufferPosition()
       colors = @detectColors(pos, line)
-      @toggleColorPicker(pos, line, colors[1]) if colors[1]
+      @toggleColorpicker(pos, line, colors[1]) if colors[1]
 
   detectColors: (pos, line) ->
+    # TODO: use tinycolor's pending `hasColor` function here
     colors = line.match(ColorRegex.isColor)
     return [] if !colors?
     start = end = 0
@@ -32,7 +34,7 @@ module.exports =
 
     return [colors]
 
-  toggleColorPicker: (pos, line, color) ->
+  toggleColorpicker: (pos, line, color) ->
     platform = os.platform()
     colorpickerPath = path.join(BIN_DIR, "#{platform}-colorpicker")
     fs.exists colorpickerPath, (exists) =>
@@ -44,17 +46,22 @@ module.exports =
         executable = !!(1 & parseInt((stats.mode & parseInt("777", 8)).toString(8)[0]))
         fs.chmodSync(colorpicker, '755') unless executable
 
-        args = ["-startColor", color] if color
-        @color = null
-        colorpicker = spawn colorpickerPath, args
+        @showColorpickerDialog(colorpickerPath, color)
 
-        colorpicker.stdout.on 'data', (data) =>
-          @color = String(data)
+  showColorpickerDialog: (colorpickerPath, color) ->
+    args = if color then ["-startColor", color] else []
+    @color = null
+    @originalColorFormat = if color then tinycolor(color).format else null
 
-        colorpicker.on 'close', (code) =>
-          @replaceSelectedTextWithMatch(@color) if code == 0 && @color?
+    colorpicker = spawn colorpickerPath, args
 
-  replaceSelectedTextWithMatch: (match) ->
+    colorpicker.stdout.on 'data', (data) =>
+      @color = tinycolor String(data), { format: "hex" }
+
+    colorpicker.on 'close', (code) =>
+      @replaceSelectedTextWithMatch(@color) if code == 0 && @color?
+
+  replaceSelectedTextWithMatch: (color) ->
     @editor.selectWord()
     selection = @editor.getSelection()
     startPosition = selection.getBufferRange().start
@@ -62,4 +69,6 @@ module.exports =
 
     selection.deleteSelectedText()
     cursorPosition = @editor.getCursorBufferPosition()
-    @editor.insertText(match)
+    @editor.insertText(color.toString())
+
+  getBinDir: -> BIN_DIR
