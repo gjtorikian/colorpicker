@@ -43,14 +43,16 @@ module.exports =
         throw err if err
         executable = !!(1 & parseInt((stats.mode & parseInt("777", 8)).toString(8)[0]))
         fs.chmodSync(colorpicker, '755') unless executable
+
         args = ["-startColor", color] if color
+        @color = null
         colorpicker = spawn colorpickerPath, args
 
         colorpicker.stdout.on 'data', (data) =>
           @color = String(data)
 
         colorpicker.on 'close', (code) =>
-          @replaceSelectedTextWithMatch(@color) if code == 0
+          @replaceSelectedTextWithMatch(@color) if code == 0 && @color?
 
   replaceSelectedTextWithMatch: (match) ->
     @editor.selectWord()
