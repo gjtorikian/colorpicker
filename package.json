@@ -15,9 +15,9 @@
     "colorpicker:toggle": ".editor:not(.mini)"
   },
   "engines": {
-    "atom": ">0.39.0"
+    "atom": ">0.59.0"
   },
   "dependencies": {
-    "tinycolor2": "0.9.9"
+    "tinycolor2": "0.9.17"
   }
 }
