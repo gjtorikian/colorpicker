@@ -9,10 +9,10 @@ describe "Colorpicker", ->
 
   beforeEach ->
     atom.workspaceView = new WorkspaceView
+    workspaceView = atom.workspaceView
     atom.packages.activatePackage('colorpicker', immediate: true)
     atom.packages.activatePackage('language-css', sync: true)
     atom.workspaceView.attachToDom()
-    workspaceView = atom.workspaceView
 
   describe "launching the colorpicker", ->
     beforeEach ->
@@ -21,10 +21,11 @@ describe "Colorpicker", ->
     describe "when there is no valid grammer", ->
       it "does not launch the colorpicker", ->
         workspaceView.openSync(path.join(FIXTURES_DIR, 'not-valid.md'))
-        editor = workspaceView.getActiveView()
+        editorView = workspaceView.getActiveView()
+        editor = editorView.getEditor()
         editor.setCursorBufferPosition([1, 25])
 
-        editor.trigger 'colorpicker:toggle'
+        editorView.trigger 'colorpicker:toggle'
 
         waits(500)
         runs ->
@@ -33,14 +34,15 @@ describe "Colorpicker", ->
     describe "when there is a valid CSS grammer", ->
       it "launches the colorpicker", ->
         workspaceView.openSync(path.join(FIXTURES_DIR, 'css', 'hex-long.css'))
+        editorView = workspaceView.getActiveView()
+        editor = editorView.getEditor()
 
-        editor = workspaceView.getActiveView()
         editor.setCursorBufferPosition([1, 25])
 
-        editor.trigger 'colorpicker:toggle'
+        editorView.trigger 'colorpicker:toggle'
 
         # let it do the fs calls
         waits(500)
 
         runs ->
-          expect(Colorpicker.showColorpickerDialog).toHaveBeenCalledWith(path.join(Colorpicker.getBinDir(), "darwin-colorpicker"), "#ffffff")
+          expect(Colorpicker.showColorpickerDialog).toHaveBeenCalledWith(path.join(Colorpicker.getBinDir(), "darwin-colorpicker"), [{ color : '#ffffff', start : 20, end : 28 }] )
