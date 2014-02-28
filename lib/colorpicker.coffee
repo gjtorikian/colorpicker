@@ -41,38 +41,41 @@ module.exports =
 
     return colorsData
 
+  colorPickerPath: ->
+    @colorPickerPlatformPath ?= path.join(BIN_DIR, "#{os.platform()}-colorpicker")
+
   toggleColorpicker: (colorsData) ->
-    platform = os.platform()
-    colorpickerPath = path.join(BIN_DIR, "#{platform}-colorpicker")
-    fs.exists colorpickerPath, (exists) =>
-      unless exists
-        return console.error "No colorpicker available for #{platform}"
-      fs.stat colorpickerPath, (err, stats) =>
+    fs.exists @colorPickerPath(), (exists) =>
+      return console.error "No colorpicker available for #{os.platform()}" unless exists
+      fs.stat @colorPickerPath(), (err, stats) =>
         throw err if err
         executable = !!(1 & parseInt((stats.mode & parseInt("777", 8)).toString(8)[0]))
         fs.chmodSync(colorpicker, '755') unless executable
 
-        @showColorpickerDialog(colorpickerPath, colorsData)
+        @showColorpickerDialog(colorsData)
 
-  showColorpickerDialog: (colorpickerPath, colorsData) ->
+  showColorpickerDialog: (colorsData) ->
     oldColor = colorsData[0]["color"]
     args = ["-startColor", oldColor]
     @newColor = null
     @originalColorFormat = tinycolor(oldColor).format
 
     if @originalColorFormat == "hex"
-      switch color.length - 1
+      switch oldColor.length - 1
         when 3 then @originalColorFormat = "hex3"
         when 6 then @originalColorFormat = "hex6"
         when 8 then @originalColorFormat = "hex8"
 
-    colorpicker = spawn colorpickerPath, args
+    colorpicker = @spawnColorPicker(args)
 
     colorpicker.stdout.on 'data', (data) =>
       @newColor = tinycolor String(data), { format: @originalColorFormat }
 
     colorpicker.on 'close', (code) =>
       @replaceSelectedTextWithMatch(@newColor, colorsData) if code == 0 && @newColor?
+
+  spawnColorPicker: (args) ->
+    spawn @colorPickerPath(), args
 
   replaceSelectedTextWithMatch: (newColor, colorsData) ->
     selection = @editor.getSelection()

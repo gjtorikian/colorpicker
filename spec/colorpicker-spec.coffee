@@ -2,6 +2,7 @@
 Colorpicker = require '../lib/colorpicker'
 child_process = require 'child_process'
 path = require 'path'
+os = require 'os'
 
 describe "Colorpicker", ->
   FIXTURES_DIR = path.join(__dirname, 'fixtures')
@@ -14,35 +15,34 @@ describe "Colorpicker", ->
     atom.packages.activatePackage('language-css', sync: true)
     atom.workspaceView.attachToDom()
 
+  setupColorpickerLaunch = (filename, cursorPos) ->
+    workspaceView.openSync(path.join(FIXTURES_DIR, filename))
+    editorView = workspaceView.getActiveView()
+    editor = editorView.getEditor()
+    editor.setCursorBufferPosition(cursorPos)
+    editorView.trigger 'colorpicker:toggle'
+
   describe "launching the colorpicker", ->
     beforeEach ->
-      spyOn(Colorpicker, 'showColorpickerDialog')
+      spyOn(Colorpicker, 'spawnColorPicker')
 
     describe "when there is no valid grammer", ->
       it "does not launch the colorpicker", ->
-        workspaceView.openSync(path.join(FIXTURES_DIR, 'not-valid.md'))
-        editorView = workspaceView.getActiveView()
-        editor = editorView.getEditor()
-        editor.setCursorBufferPosition([1, 25])
+        setupColorpickerLaunch("not-valid.md", [0, 25])
 
-        editorView.trigger 'colorpicker:toggle'
-
-        waits(500)
+        waits(100)
         runs ->
-          expect(Colorpicker.showColorpickerDialog).not.toHaveBeenCalled()
+          expect(Colorpicker.spawnColorPicker).not.toHaveBeenCalled()
 
     describe "when there is a valid CSS grammer", ->
       it "launches the colorpicker", ->
-        workspaceView.openSync(path.join(FIXTURES_DIR, 'css', 'hex-long.css'))
-        editorView = workspaceView.getActiveView()
-        editor = editorView.getEditor()
-
-        editor.setCursorBufferPosition([1, 25])
-
-        editorView.trigger 'colorpicker:toggle'
+        setupColorpickerLaunch("css/hex-long.css", [1, 25])
 
         # let it do the fs calls
-        waits(500)
-
+        waits(100)
         runs ->
-          expect(Colorpicker.showColorpickerDialog).toHaveBeenCalledWith(path.join(Colorpicker.getBinDir(), "darwin-colorpicker"), [{ color : '#ffffff', start : 20, end : 28 }] )
+          expect(Colorpicker.spawnColorPicker).toHaveBeenCalledWith(["-startColor", "#ffffff"] )
+
+  describe "colorpicker binary path", ->
+    it "should exist", ->
+      expect(Colorpicker.colorPickerPath()).toBe path.join(Colorpicker.getBinDir(), "#{os.platform()}-colorpicker")
